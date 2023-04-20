@@ -181,4 +181,4 @@ while segmenting:
 
 window.close()
 
-#typed comment from desktop
+
