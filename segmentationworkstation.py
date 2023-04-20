@@ -5,7 +5,6 @@ import numpy as np
 import tkinter as tk
 from PIL import Image, ImageTk, ImageFilter
 import pydicom as dicom
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
