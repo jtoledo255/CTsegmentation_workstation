@@ -180,3 +180,5 @@ while segmenting:
                 psg.popup_auto_close('Closed Slice')
 
 window.close()
+
+#typed comment from desktop
