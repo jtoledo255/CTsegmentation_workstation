@@ -8,6 +8,7 @@ import pydicom as dicom
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+
 import matplotlib
 matplotlib.use('TkAgg')
 from roipoly import RoiPoly
