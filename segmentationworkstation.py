@@ -175,8 +175,7 @@ while segmenting:
         window["-SLICETRACK-"].update([str(currentSlice+1)+'/'+str(len(imList))])
         print(window_scale)
     elif event == "Segment":
-        global clone
-        clone = currentImN.copy()
+
         if chosen_image == 0:
             psg.popup_auto_close('Choose Image Directory First')
         else:
