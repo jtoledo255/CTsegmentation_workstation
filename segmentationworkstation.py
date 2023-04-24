@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from skimage.draw import polygon2mask
 import matplotlib
 matplotlib.use('TkAgg')
-from roipoly import RoiPoly
+
 
 drawing = False # true if mouse is pressed
 pt1_x , pt1_y = None , None
@@ -99,7 +99,7 @@ anat_lst = psg.Combo(anatomy, font=('Arial Bold', 14),  expand_x=True, enable_ev
 reg_lst = psg.Combo(region, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-region-')
 file_list_column = [[psg.Text("Case Folder"),
                     psg.In(size=(25,1), enable_events=True, key="-CASE-"),
-                    psg.FolderBrowse()],[psg.Text("Anatomy"),anat_lst],[psg.Text("Region"),reg_lst],[psg.Text('Enter W: '), psg.Input(key='-window-')],
+                    psg.FolderBrowse()],[psg.Text("User: "), psg.Input(key='-USER-')],[psg.Text("Anatomy"),anat_lst],[psg.Text("Region"),reg_lst],[psg.Text('Enter W: '), psg.Input(key='-window-')],
                     [psg.Text('Enter L: '), psg.Input(key='-level-')],[psg.Button('Apply W/L', key = '-scale-'),psg.Button('Segment')]]
 image_viewer_column = [[psg.Text("CHOOSE A CASE FROM THE BROWSER", key="-DIRECTIONS-")],
                        [psg.Image(key="-IMAGE-")],
@@ -237,10 +237,9 @@ while segmenting:
                 slice_id = imList[currentSlice]
                 slice_id = slice_id.split('.dcm')
 
-                fullpath = os.path.join(segmentation_path,case_id+'_'+'rec-'+recon+'_'+'reg-'+str(region_num)+'_'+slice_id[0]+'.binary.png')
-                fullpathcoordinates = os.path.join(segmentation_path,case_id+'_'+'rec-'+recon+'_'+'reg-'+str(region_num)+'_'+slice_id[0]+'.binary.txt')
+                fullpath = os.path.join(segmentation_path,values['-USER-']+'_'+case_id+'_'+'rec-'+recon+'_'+'reg-'+str(region_num)+'_'+slice_id[0]+'.binary.png')
+                fullpathcoordinates = os.path.join(segmentation_path,values['-USER-']+'_'+case_id+'_'+'rec-'+recon+'_'+'reg-'+str(region_num)+'_'+slice_id[0]+'.binary.txt')
                 print(fullpath)
-
                 if os.path.exists(fullpath):
                     ch = psg.popup_yes_no("Segmentation for that slice and region exists, do you wish to overwrite?",  title="YesNo")
                     if ch =='Yes':
