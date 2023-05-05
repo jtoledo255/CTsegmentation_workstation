@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from skimage.draw import polygon2mask
 import matplotlib
+import ast
 matplotlib.use('TkAgg')
 
 
@@ -93,14 +94,14 @@ def find_between( s, first, last ):
     except ValueError:
         return ""
 
-anatomy = ['calvarial fracture','midline']
+anatomy = ['calvarial fracture','midline','Thalamus','Brain Stem and cisterns','Lateral Ventricles','3rd Ventricles','4th Ventricles','Cerebellum and vermis']
 region = [*range(1,21)]
 anat_lst = psg.Combo(anatomy, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-COMBO-')
 reg_lst = psg.Combo(region, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-region-')
 file_list_column = [[psg.Text("Case Folder"),
                     psg.In(size=(25,1), enable_events=True, key="-CASE-"),
-                    psg.FolderBrowse()],[psg.Text("User: "), psg.Input(key='-USER-')],[psg.Text("Anatomy"),anat_lst],[psg.Text("Region"),reg_lst],[psg.Text('Enter W: '), psg.Input(key='-window-')],
-                    [psg.Text('Enter L: '), psg.Input(key='-level-')],[psg.Button('Apply W/L', key = '-scale-'),psg.Button('Segment')]]
+                    psg.FolderBrowse()],[psg.Text("User: "), psg.Input(key='-USER-')],[psg.Text("Anatomy"),anat_lst],[psg.Text("Region"),reg_lst],[psg.Text('Enter W: '), psg.Input(key='-window-')],[psg.Text('W slider '),psg.Slider(range=(1,4000),default_value = 80,orientation = 'horizontal',disable_number_display = False, key = '-wslider-' )],
+                    [psg.Text('Enter L: '), psg.Input(key='-level-')],[psg.Text('L slider '),psg.Slider(range=(1,1000),default_value = 40,orientation = 'horizontal',disable_number_display = False, key = '-lslider-' )],[psg.Button('Apply W/L', key = '-scale-'),psg.Button('Segment'),psg.Button('Overly Segmentations', key = '-overlay-')]]
 image_viewer_column = [[psg.Text("CHOOSE A CASE FROM THE BROWSER", key="-DIRECTIONS-")],
                        [psg.Image(key="-IMAGE-")],
                        [psg.Text("", key="-SLICETRACK-")]]
@@ -174,6 +175,16 @@ while segmenting:
         window["-IMAGE-"].update(data=ImageTk.PhotoImage(image=Image.fromarray(currentIm)), size=(512,512))
         window["-SLICETRACK-"].update([str(currentSlice+1)+'/'+str(len(imList))])
         print(window_scale)
+    elif event == "-wslider-":
+        window_scale = int(values['-wslider-'])
+        level_scale = int(values['-lslider-'])
+        imStack,c = image_stacking(imList,casePath,height,width,level_scale,window_scale)
+        currentIm = Image.fromarray(imStack[currentSlice,:,:]).convert('L')
+        currentImN = np.array(currentIm)
+        currentIm = drawContour(currentImN, c[currentSlice,:,:,:], includeChannels, RGB)
+        window["-IMAGE-"].update(data=ImageTk.PhotoImage(image=Image.fromarray(currentIm)), size=(512,512))
+        window["-SLICETRACK-"].update([str(currentSlice+1)+'/'+str(len(imList))])
+        print(window_scale)
     elif event == "Segment":
 
         if chosen_image == 0:
@@ -224,10 +235,10 @@ while segmenting:
                         img = currentImN
 
 
-
-                if not os.path.exists('masks'):
-                    os.mkdir('masks')
-                segmentation_path = 'masks'+'/'+values['-COMBO-']
+                save_path = '/nfs/kitbag/data1/jdfuhrman/PBI_Project/CTsegmentation_Results/Masks/'
+                if not os.path.exists('Masks'):
+                    os.mkdir('Masks')
+                segmentation_path = save_path+values['-COMBO-']
                 if not os.path.exists(segmentation_path):
                     os.mkdir(segmentation_path)
 
@@ -256,6 +267,68 @@ while segmenting:
 
             except:
                 psg.popup_auto_close('Closed Slice, nothing saved')
+    elif event == '-overlay-':
+        try:
+
+            segmentations = []
+            mask_directory = '/nfs/kitbag/data1/jdfuhrman/PBI_Project/CTsegmentation_Results/Masks/'
+            slice_id = imList[currentSlice]
+            slice_id = slice_id.split('.dcm')
+            case_id = find_between(casePath,'PBI_Images/','/')
+            for root, dirs, files in os.walk(mask_directory, topdown=True):
+                for name in files:
+                    if name.endswith('.txt') and case_id in name and slice_id[0] in name:
+                        segmentations.append(os.path.join(root,name))
+
+            if len(segmentations) > 0:
+                currentIm = Image.fromarray(imStack[currentSlice,:,:]).convert('L').convert('RGB')
+                currentImN = np.array(currentIm)
+
+
+                for i in segmentations:
+                    with open(i, 'r') as f:
+                        coordinates = ast.literal_eval(f.read())
+
+                    if anatomy[0] in i:
+                        color = (250,0,0)
+                    elif anatomy[1] in i:
+                        color = (0,255,0)
+                    elif anatomy[2] in i:
+                        color = (0,0,255)
+                    elif anatomy[3] in i:
+                        color = (255,255,0)
+                    elif anatomy[4]in i:
+                        color = (255,0,255)
+                    elif anatomy[5] in i:
+                        color = (255,165,0)
+                    elif anatomy[6] in i:
+                        color = (138,43,226)
+                    elif anatomy[7] in i:
+                        color = (0,0,128)
+
+
+                    penta = np.array(coordinates,np.int32)
+                    penta = np.flip(penta,1)
+                    #penta = penta.reshape((1, -1, 2))
+                    img = cv.polylines(currentImN, [penta], False, color,1)
+                    #cv.imshow('shapes',img)
+                    #cv.waitKey(0)
+                    #cv.destroyAllWindows()
+
+
+
+                imStack,c = image_stacking(imList,casePath,height,width,level_scale,window_scale)
+
+                currentIm = drawContour(img, c[currentSlice,:,:,:], includeChannels, RGB)
+                window["-IMAGE-"].update(data=ImageTk.PhotoImage(image=Image.fromarray(currentIm)), size=(512,512))
+                window["-SLICETRACK-"].update([str(currentSlice+1)+'/'+str(len(imList))])
+                coordinates = []
+            else:
+                psg.popup_auto_close('No segmentations')
+        except:
+            psg.popup_auto_close('No segmentations')
+
+
 
 window.close()
 
